@@ -13,11 +13,13 @@ private let container: Container = {
   c.register(URLRequestAuthenticator.self) { r in
     let accountStore = r.resolve(AccountStore.self)
     var token = ""
-    dispatch_sync(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
-      accountStore!.getAuthenticatedAccount { account in
-        token = account!.credential.accessToken
-      }
+    let dispatchGroup = dispatch_group_create()
+    dispatch_group_enter(dispatchGroup)
+    accountStore!.getAuthenticatedAccount { account in
+      token = account!.credential.accessToken
+      dispatch_group_leave(dispatchGroup)
     }
+    dispatch_group_wait(dispatchGroup, DISPATCH_TIME_FOREVER)
     return URLRequestBearerTokenAuthenticator(token: token)
   }
 
